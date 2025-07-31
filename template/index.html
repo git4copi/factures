@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse PDF avec Azure AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn-custom {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        
+        .progress-container {
+            display: none;
+            margin: 2rem 0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .floating-card {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container floating-card">
+            <div class="text-center mb-4">
+                <h1 class="display-4 fw-bold text-primary">
+                    <i class="fas fa-file-pdf me-3"></i>
+                    Analyse PDF avec Azure AI
+                </h1>
+                <p class="lead text-muted">
+                    Convertissez vos PDF en images et analysez-les avec l'intelligence artificielle
+                </p>
+            </div>
+
+            <!-- Zone d'upload -->
+            <div class="upload-area" id="uploadArea">
+                <div class="mb-3">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                    <h4>Glissez vos fichiers ici</h4>
+                    <p class="text-muted">ou cliquez pour sélectionner</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="pdfFile" class="form-label fw-bold">
+                                <i class="fas fa-file-pdf me-2"></i>Fichier PDF
+                            </label>
+                            <input type="file" class="form-control" id="pdfFile" accept=".pdf" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="excelFile" class="form-label fw-bold">
+                                <i class="fas fa-file-excel me-2"></i>Fichier Excel
+                            </label>
+                            <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="promptInput" class="form-label fw-bold">
+                        <i class="fas fa-comment me-2"></i>Prompt d'analyse
+                    </label>
+                    <textarea class="form-control" id="promptInput" rows="3" 
+                              placeholder="Décrivez ce que vous voulez extraire des images...">Analysez cette image et extrayez les informations importantes comme le type de document, la date, le montant, l'émetteur, etc.</textarea>
+                </div>
+                
+                <button class="btn btn-custom btn-lg" id="uploadBtn" onclick="uploadFiles()">
+                    <i class="fas fa-upload me-2"></i>Traiter les fichiers
+                </button>
+            </div>
+
+            <!-- Barre de progression -->
+            <div class="progress-container" id="progressContainer">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold">Traitement en cours...</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Résultats -->
+            <div id="resultsContainer" style="display: none;">
+                <h3 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>Résultats de l'analyse
+                </h3>
+                <div id="resultsList"></div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-custom" id="downloadBtn" onclick="downloadResults()">
+                        <i class="fas fa-download me-2"></i>Télécharger le fichier Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/app.js"></script>
+</body>
+</html> 
