@@ -1,0 +1,9 @@
+# Configuration Azure AI
+AZURE_AI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_AI_API_KEY=your-azure-ai-api-key-here
+AZURE_AI_DEPLOYMENT_NAME=gpt-4-vision-preview
+
+# Configuration de l'application
+FLASK_ENV=development
+FLASK_DEBUG=True
+MAX_CONTENT_LENGTH=16777216 
